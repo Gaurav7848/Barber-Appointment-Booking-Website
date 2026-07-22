@@ -32,6 +32,12 @@ const userSchema = new mongoose.Schema({
   avatar: {
     type: String,
   },
+  otp: {
+    type: String,
+  },
+  otpExpires: {
+    type: Date,
+  },
 }, { timestamps: true });
 
 userSchema.pre('save', async function(next) {

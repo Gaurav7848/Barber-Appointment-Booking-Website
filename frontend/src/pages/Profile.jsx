@@ -2,33 +2,64 @@ import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { logout } from '../features/auth/authSlice'
-import { User, Mail, Phone, MapPin, Calendar, Settings, LogOut } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Calendar, Settings, LogOut, Upload } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { authAPI } from '../utils/authAPI'
 
 const Profile = () => {
   const { user } = useSelector((state) => state.auth)
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const [isEditing, setIsEditing] = React.useState(false)
+  const [loading, setLoading] = React.useState(false)
+  const [avatarPreview, setAvatarPreview] = React.useState(user?.avatar || '')
   const [formData, setFormData] = React.useState({
     name: user?.name || '',
     phone: user?.phone || '',
+    address: user?.address || '',
+    city: user?.city || '',
+    state: user?.state || '',
+    pincode: user?.pincode || '',
+    avatar: null,
   })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
     try {
-      await fetch('/api/auth/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(formData),
-      })
-      alert('Profile updated successfully!')
+      await authAPI.updateProfile(formData)
+      toast.success('Profile updated successfully!')
       setIsEditing(false)
     } catch (error) {
-      alert('Failed to update profile')
+      toast.error(error.message || 'Failed to update profile')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setFormData({ ...formData, avatar: file })
+      setAvatarPreview(URL.createObjectURL(file))
+    }
+  }
+
+  const handleAvatarUpload = async () => {
+    if (!formData.avatar) {
+      toast.error('Please select an image')
+      return
+    }
+    setLoading(true)
+    try {
+      const uploadFormData = new FormData()
+      uploadFormData.append('avatar', formData.avatar)
+      await authAPI.uploadAvatar(uploadFormData)
+      toast.success('Avatar uploaded successfully!')
+    } catch (error) {
+      toast.error(error.message || 'Failed to upload avatar')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -53,7 +84,31 @@ const Profile = () => {
               {isEditing ? 'Cancel' : 'Edit Profile'}
             </button>
           </div>
-          
+
+          <div className="flex items-center mb-8">
+            <div className="w-24 h-24 bg-gray-200 rounded-full overflow-hidden mr-6">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-2xl">?</div>
+              )}
+            </div>
+            {isEditing && (
+              <div>
+                <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" id="avatar-upload" />
+                <label htmlFor="avatar-upload" className="btn-secondary cursor-pointer inline-flex items-center">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Choose Image
+                </label>
+                {formData.avatar && (
+                  <button type="button" onClick={handleAvatarUpload} disabled={loading} className="btn-primary ml-2">
+                    {loading ? 'Uploading...' : 'Upload'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -106,11 +161,56 @@ const Profile = () => {
                   />
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  disabled={!isEditing}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                <input
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  disabled={!isEditing}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
+                <input
+                  type="text"
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                  disabled={!isEditing}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                />
+              </div>
             </div>
-            
+
             {isEditing && (
               <div className="flex space-x-4">
-                <button type="submit" className="btn-primary">Save Changes</button>
+                <button type="submit" disabled={loading} className="btn-primary">
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </button>
                 <button type="button" onClick={() => setIsEditing(false)} className="btn-secondary">Cancel</button>
               </div>
             )}

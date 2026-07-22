@@ -1,6 +1,7 @@
 import express from 'express';
 import Barber from '../models/barber.model.js';
 import Organization from '../models/organization.model.js';
+import Service from '../models/service.model.js';
 import { protect, organization, admin } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
 
@@ -53,6 +54,48 @@ router.put('/:id', protect, organization, async (req, res) => {
     } else {
       res.status(403).json({ message: 'Not authorized' });
     }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.post('/:id/services', protect, organization, async (req, res) => {
+  try {
+    const barber = await Barber.findById(req.params.id);
+    const org = await Organization.findOne({ ownerId: req.user._id });
+    if (!barber || !org || barber.organizationId.toString() !== org._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    const { serviceId } = req.body;
+    const service = await Service.findById(serviceId);
+    if (!service) {
+      return res.status(404).json({ message: 'Service not found' });
+    }
+
+    if (!barber.services.includes(serviceId)) {
+      barber.services.push(serviceId);
+      await barber.save();
+    }
+
+    res.json(barber);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.delete('/:id/services/:serviceId', protect, organization, async (req, res) => {
+  try {
+    const barber = await Barber.findById(req.params.id);
+    const org = await Organization.findOne({ ownerId: req.user._id });
+    if (!barber || !org || barber.organizationId.toString() !== org._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    barber.services = barber.services.filter(id => id.toString() !== req.params.serviceId);
+    await barber.save();
+
+    res.json(barber);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

@@ -10,30 +10,50 @@ const ShopDetail = () => {
   const [reviews, setReviews] = React.useState([])
   const [selectedDate, setSelectedDate] = React.useState('')
   const [slots, setSlots] = React.useState([])
+  const [selectedBarberFilter, setSelectedBarberFilter] = React.useState('')
+  const [loadingSlots, setLoadingSlots] = React.useState(false)
 
   React.useEffect(() => {
     Promise.all([
-      fetch(`/api/organizations/${id}`).then(res => res.json()),
-      fetch(`/api/services/organization/${id}`).then(res => res.json()),
-      fetch(`/api/barbers/organization/${id}`).then(res => res.json()),
-      fetch(`/api/reviews/organization/${id}`).then(res => res.json()),
+      fetch(`/api/organizations/${id}`).then(res => res.ok ? res.json() : Promise.reject()),
+      fetch(`/api/services/organization/${id}`).then(res => res.ok ? res.json() : Promise.reject()),
+      fetch(`/api/barbers/organization/${id}`).then(res => res.ok ? res.json() : Promise.reject()),
+      fetch(`/api/reviews/organization/${id}`).then(res => res.ok ? res.json() : Promise.reject()),
     ]).then(([shopData, servicesData, barbersData, reviewsData]) => {
       setShop(shopData)
       setServices(servicesData)
       setBarbers(barbersData)
       setReviews(reviewsData)
-    })
+    }).catch(err => console.error('Error loading shop details:', err))
   }, [id])
+
+  const fetchSlots = async (date, barberId) => {
+    if (!date) return
+    setLoadingSlots(true)
+    try {
+      const barberParam = barberId ? `&barberId=${barberId}` : ''
+      const res = await fetch(`/api/timeslots/organization/${id}?date=${date}${barberParam}`)
+      if (res.ok) {
+        const data = await res.json()
+        setSlots(data.slots || [])
+      }
+    } catch (err) {
+      console.error('Error fetching slots:', err)
+    } finally {
+      setLoadingSlots(false)
+    }
+  }
 
   React.useEffect(() => {
     if (selectedDate) {
-      fetch(`/api/timeslots/organization/${id}?date=${selectedDate}`)
-        .then(res => res.json())
-        .then(data => setSlots(data.slots || []))
+      fetchSlots(selectedDate, selectedBarberFilter)
     }
-  }, [selectedDate, id])
+  }, [selectedDate, selectedBarberFilter, id])
 
   if (!shop) return <div className="text-center py-20">Loading...</div>
+
+  const mapQuery = encodeURIComponent(`${shop.address}, ${shop.city}`)
+  const mapSrc = `https://maps.google.com/maps?q=${mapQuery}&t=&z=13&ie=UTF8&iwloc=&output=embed`
 
   return (
     <div className="min-h-screen bg-white">
@@ -53,7 +73,7 @@ const ShopDetail = () => {
           </div>
         </div>
       </div>
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2">
@@ -118,7 +138,7 @@ const ShopDetail = () => {
             <div className="bg-accent p-6 rounded-xl sticky top-24">
               <h3 className="text-xl font-semibold mb-4">Book Appointment</h3>
               <Link to={`/book/${shop._id}`} className="btn-primary block text-center mb-6">Book Now</Link>
-              
+
               <div className="space-y-3 mb-6">
                 <div className="flex items-center text-gray-600">
                   <Clock className="h-5 w-5 mr-3" />
@@ -143,21 +163,53 @@ const ShopDetail = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3"
                   min={new Date().toISOString().split('T')[0]}
                 />
+                {barbers.length > 0 && (
+                  <select
+                    value={selectedBarberFilter}
+                    onChange={(e) => setSelectedBarberFilter(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3"
+                  >
+                    <option value="">Any Barber</option>
+                    {barbers.map((barber) => (
+                      <option key={barber._id} value={barber._id}>{barber.name}</option>
+                    ))}
+                  </select>
+                )}
                 {selectedDate && (
                   <div>
-                    <p className="text-sm font-medium mb-2">Available Slots:</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {slots.map((slot) => (
-                        <div key={slot.time} className={`text-center py-2 px-2 rounded text-sm ${slot.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {slot.time}
-                        </div>
-                      ))}
-                      {slots.length === 0 && <p className="text-gray-500 text-sm col-span-full">No slots</p>}
-                    </div>
+                    <p className="text-sm font-medium mb-2">Available Slots (30 min each):</p>
+                    {loadingSlots ? (
+                      <p className="text-gray-500 text-sm col-span-full">Loading...</p>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2">
+                        {slots.map((slot) => (
+                          <div key={slot.time} className={`text-center py-2 px-2 rounded text-sm ${slot.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {slot.time}
+                          </div>
+                        ))}
+                        {slots.length === 0 && <p className="text-gray-500 text-sm col-span-full">No slots</p>}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="mt-16">
+          <h2 className="text-2xl font-bold mb-6">Location</h2>
+          <div className="rounded-xl overflow-hidden shadow-lg">
+            <iframe
+              title="Shop Location"
+              src={mapSrc}
+              width="100%"
+              height="300"
+              style={{ border: 0 }}
+              allowFullScreen=""
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            ></iframe>
           </div>
         </div>
       </div>

@@ -42,4 +42,27 @@ export const authAPI = {
     })
     return response.data
   },
+  sendOtp: async (data) => {
+    const response = await axios.post(`${API_URL}/auth/send-otp`, data)
+    return response.data
+  },
+  verifyOtp: async (data) => {
+    const response = await axios.post(`${API_URL}/auth/verify-otp`, data)
+    return response.data
+  },
+  forgotPassword: async (data) => {
+    const response = await axios.post(`${API_URL}/auth/forgot-password`, data)
+    return response.data
+  },
+  resetPassword: async (otp, data) => {
+    const response = await axios.post(`${API_URL}/auth/reset-password/${otp}`, data)
+    return response.data
+  },
+  uploadAvatar: async (formData) => {
+    const token = localStorage.getItem('token')
+    const response = await axios.post(`${API_URL}/auth/upload-avatar`, formData, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
 }

@@ -17,3 +17,13 @@ const storage = new CloudinaryStorage({
 });
 
 export const upload = multer({ storage });
+
+const galleryStorage = new CloudinaryStorage({
+  cloudinary: cloudinary.v2,
+  params: {
+    folder: 'barber-booking/gallery',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+  },
+});
+
+export const galleryUpload = multer({ storage: galleryStorage });

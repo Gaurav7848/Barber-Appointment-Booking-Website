@@ -15,6 +15,9 @@ import AdminDashboard from './pages/AdminDashboard'
 import OrganizationRegister from './pages/OrganizationRegister'
 import Profile from './pages/Profile'
 import AdminLogin from './pages/AdminLogin'
+import ForgotPassword from './pages/ForgotPassword'
+import Notifications from './pages/Notifications'
+import Favorites from './pages/Favorites'
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user } = useSelector((state) => state.auth)
@@ -38,10 +41,13 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/register" element={<Register />} />
           <Route path="/register-organization" element={<OrganizationRegister />} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute allowedRoles={['customer']}><Notifications /></ProtectedRoute>} />
+          <Route path="/favorites" element={<ProtectedRoute allowedRoles={['customer']}><Favorites /></ProtectedRoute>} />
           <Route path="/dashboard/customer" element={
             <ProtectedRoute allowedRoles={['customer']}>
               <CustomerDashboard />

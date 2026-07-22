@@ -36,4 +36,16 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+router.get('/customer', protect, async (req, res) => {
+  try {
+    const reviews = await Review.find({ userId: req.user._id })
+      .populate('organizationId', 'name images avatar')
+      .populate('appointmentId', 'date')
+      .sort({ createdAt: -1 });
+    res.json(reviews);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 export default router;

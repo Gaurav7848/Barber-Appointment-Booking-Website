@@ -29,3 +29,14 @@ export const appointmentAPI = {
     return response.data
   },
 }
+
+export const paymentAPI = {
+  createOrder: async (appointmentId) => {
+    const response = await axios.post(`${API_URL}/payment/create-order`, { appointmentId }, { headers: getAuthHeader() })
+    return response.data
+  },
+  verify: async (paymentData) => {
+    const response = await axios.post(`${API_URL}/payment/verify`, paymentData, { headers: getAuthHeader() })
+    return response.data
+  },
+}

@@ -1,27 +1,29 @@
 import React from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { Link, useNavigate } from 'react-router-dom'
-import { login } from '../features/auth/authSlice'
-import toast from 'react-hot-toast'
+import { Link } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 
 const Login = () => {
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const { loading } = useSelector((state) => state.auth)
   const [showPassword, setShowPassword] = React.useState(false)
   const [formData, setFormData] = React.useState({ email: '', password: '' })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const result = await dispatch(login(formData)).unwrap()
-      toast.success('Login successful!')
-      navigate(`/dashboard/${result.role}`)
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data))
+        window.location.href = `/dashboard/${data.role}`
+      } else {
+        alert(data.message || 'Login failed')
+      }
     } catch (error) {
-      const msg = error?.message || error?.data?.message || 'Login failed'
-      toast.error(msg)
-      console.error('Login error:', error)
+      alert('Login failed. Please try again.')
     }
   }
 
@@ -60,8 +62,11 @@ const Login = () => {
               </button>
             </div>
           </div>
-          <button type="submit" disabled={loading} className="w-full btn-primary">
-            {loading ? 'Signing in...' : 'Sign In'}
+          <div className="flex justify-end">
+            <Link to="/forgot-password" className="text-sm text-primary hover:underline">Forgot Password?</Link>
+          </div>
+          <button type="submit" className="w-full btn-primary">
+            Sign In
           </button>
         </form>
         <p className="text-center mt-6 text-gray-600">
